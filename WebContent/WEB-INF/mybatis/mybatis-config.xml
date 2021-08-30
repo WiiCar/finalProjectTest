@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+	<settings>
+		<setting name="jdbcTypeForNull" value="NULL" />
+	</settings>
+	
+	<typeAliases>
+		<typeAlias type="wiicar.member.dto.MemberDTO" alias="memberDTO"/>
+		<typeAlias type="wiicar.carpool.dto.CarpoolDTO" alias="CarpoolDTO"/>
+	</typeAliases>
+
+	<mappers>
+		<mapper resource="/sql/memberSQL.xml"/>
+		<mapper resource="/sql/carpoolSQL.xml"/>
+	</mappers>
+
+</configuration>  
