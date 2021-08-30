@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace : 내부에 작성된 sql 태그를 호출시 namespace명.id 로 사용하게 될것. -->
+<mapper namespace="test">
+
+	<select id="userCount" resultType="int">
+		select count(*) from test <!-- 뒤에 ; 필요없음 -->
+	</select>
+	
+	<select id="maxAge" resultType="int">
+		select max(age) from test
+	</select>
+	
+	<select id="selectAll" resultType="testDTO">
+		select * from test
+	</select>
+	
+	<select id="getOneUser" resultType="testDTO" parameterType="string">
+		select * from test where id= #{value}
+	</select>
+	
+	<select id="getReg" resultType="java.sql.Timestamp" parameterType="string">
+		select reg from test where id=#{value}
+	</select>
+	
+	<insert id="insertUser" parameterType="testDTO">
+		insert into test(id, pw, age, reg) values(#{id}, #{pw}, #{age}, sysdate)
+	</insert>
+	
+	<update id="updateUser" parameterType="testDTO">
+		update test set pw=#{pw}, age=#{age} where id=#{id}
+	</update>
+	
+	<delete id="deleteUser" parameterType="string">
+		delete from test where id = #{value}
+	</delete>
+
+</mapper>
