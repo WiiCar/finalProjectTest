@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mybatis">
+
+	<!-- 넘겨준 id와 동일한 값의 레코드 수 구하기 -->
+	<select id="selectIf" parameterType="string" resultType="int">
+		select
+		count(*) from test where id = #{value}
+	</select>
+
+	<!-- 넘겨준 id와 동일한 값의 레코드가 있으면 개수 리턴, 넘어온 id가 없으면 전체 레코드수 리턴 -->
+	<select id="selectIf2" parameterType="string" resultType="int">
+		select count(*) from test
+		<if test="value != null">
+			where id = #{value}
+		</if>
+	</select>
+
+	<!-- id, pw 둘다 넘어오면 로그인 체크, id만 넘어오면 id존재 유무 체크 -->
+	<select id="selectIf3" parameterType="testDTO" resultType="int">
+		select count(*) from test
+		<if test="id != null">
+			where id = #{id}
+		</if>
+		<if test="pw != null">
+			and pw = #{pw}
+		</if>
+	</select>
+
+	<select id="choose" parameterType="testDTO" resultType="int">
+		select count(*) from test where id = #{id}
+		<choose>
+			<when test="pw != null">
+				and pw = #{pw}
+			</when>
+			<when test="age != null">
+				and age = #{age}
+			</when>
+			<otherwise>
+				<!-- 두 조건에 맞지 않을경우 else 라고 생각하자 -->
+			</otherwise>
+		</choose>
+	</select>
+
+	<select id="selectTrim" parameterType="testDTO" resultType="int">
+		select count(*) from test
+		<!-- prefixOverrides="and|or" and 또는 or 이 있으면 where로 덮어쓰겠다!! -->
+		<!-- prefix는 처음 한번만 붙는다 -->
+		<trim prefix="where" prefixOverrides="and|or">
+			<if test="id != null">
+				id = #{id}
+			</if>
+			<if test="pw != null">
+				and pw = #{pw}
+			</if>
+			<if test="age != null">
+				and age = #{age}
+			</if>
+		</trim>
+	</select>
+
+	<update id="updateTest" parameterType="testDTO">
+		update test
+		<!-- suffixOverrides : 마지막에 있는것을 지워버리는 친구 -->
+		<trim prefix="set" suffixOverrides=",">
+			<if test="pw != null">
+				pw = #{pw},
+			</if>
+			<if test="age != null">
+				age = #{age},
+			</if>
+			<if test="reg != null">
+				reg = #{reg}
+			</if>
+		</trim>
+		where id = #{id}
+	</update>
+	
+	<select id="selectIn" parameterType="list" resultType="int">
+		select count(*) from test where id in 
+		<foreach collection="list" item="item" open="(" close=")" separator=",">
+			#{item}
+		</foreach>
+	</select>
+	
+	<select id="selectLike" parameterType="hashmap" resultType="int">
+		select count(*) from test where ${column} like '%'||#{keyword}||'%'
+	</select>
+	
+	<!-- test 테이블에 레코드 추가, 나머지는 파라미터로 전달받고, age = 전체 레코드의 개수를 구해서 넣기  -->
+	<insert id="insertKeyAge" parameterType="testDTO">
+		<!-- insert 문 실행전 selectKey를 (Before)먼저 실행해서 age라는 변수에 담아줘!!! -->
+		<selectKey keyProperty="age" order="BEFORE" resultType="int">
+			select count(*) from test
+		</selectKey>
+		insert into test values(#{id}, #{pw}, #{age}, sysdate)
+	</insert>
+
+	<insert id="insertSeq" parameterType="testDTO">
+		insert into test values(#{id}, #{pw}, test_seq.nextVal, sysdate)
+		<selectKey keyProperty="age" resultType="int" order="AFTER">
+			select test_seq.currval from dual
+		</selectKey>
+	
+	</insert>
+
+
+
+
+
+</mapper>

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-4.3.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc.xsd"
+	>
+	<!-- Spring MVC 컴포넌트들을 디폴트 설정을 통해 활성화 
+		Spring MVC @Controller에 요청을 보내기 위해 필요한 HandlerMapping과 HandlerAdapter를 Bean으로 등록한다.
+			HandlerMapping : HTTP 요청정보를 이용해서 컨트롤러를 찾아주는 기능!
+			HandlerAdpter : HandlerMapping을 통해 찾은 컨트롤러를 직접 실행하는 기능을 수행
+		Bean을 생성하기 위해 xml 파일에 component-scan을 명시하면, 이태그를 포함하지 않아도 MVC 어플리케이션은 작성은 된다.
+		제대로된 HandlerMapping을 하기위해선 <mvc:annotation-driven/>이 필요 
+	-->
+	<mvc:annotation-driven/>
+	
+	<!-- 파일 다운로드시, 응답으로 보내줄 빈(객체)를 등록하기 : 그래야 추후 Controller에서 fileDown을 리턴해주면
+		우선순위 0 번째인 BeanNameViewResolver가 찾아서 응답 객체로 처리해 줄 수 있다. -->
+	<bean id="fileDown" class="test.spring.bean.DownloadView" />
+	
+	<!-- 파일 다운로드를 위해, BeanNameViewResolver를 등록하고, 우선순위를 최우선으로 두고, JSP 파일을 view로 처리해주는 InteralResourceViewResolver는 후순위로 지정한다.  -->
+	<bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+		<property name="order" value="0"/>
+	</bean>
+	
+	<!-- ViewResolver 세팅 
+		prefix : 접두어
+		suffix : 접미어
+	-->
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/"/>
+		<property name="suffix" value=".jsp"/>
+		<property name="order" value="1"></property>
+	</bean>
+	
+	<!-- 파일업로드를 위한 MultipartResolver 등록 
+		defaultEncoding : 파일이름 한글깨짐 방지위해 세팅
+		maxUploadSize : 1024*1024*10 = 10M, -1 업로드 크기 제한 없음
+		maxUploadsizePerFile : 하나의 파일 최대 크기 지정
+		maxInMemorySize : 메모리상에서 유지하는 최대 크기
+		uploadTempDir : 임시파일로 저장할 경로 지정
+	-->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding" value="UTF-8"></property>
+		<property name="maxUploadSize" value="-1"></property>
+	</bean>
+	
+	<!-- Mybatis활용한 DB 설정 -->
+	<!-- DB 데이터 소스  
+		DB 커넥션 정보 BasicDataSource 타입으로 작성 
+		destroy-method : bean 객체의 스코프가 끝났을 경우, close() 메소드 호출 -->
+	<bean id="dataSourceSpied" class="org.apache.commons.dbcp.BasicDataSource" 
+		destroy-method="close"
+		p:driverClassName="oracle.jdbc.driver.OracleDriver"
+		p:url="jdbc:oracle:thin:@nullmaster.iptime.org:1521:ORCL"
+		p:username="glob05"
+		p:password="glob05"
+	/>
+	<bean id="dataSource" class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
+		<constructor-arg ref="dataSourceSpied" />
+		<property name="logFormatter">
+			<bean class="net.sf.log4jdbc.tools.Log4JdbcCustomFormatter">
+				<property name="loggingType" value="MULTI_LINE" />
+				<property name="sqlPrefix" value="SQL : " />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 커넥션 풀 역할 SqlSessionFactory 
+		필요한 것 : DB 연결정보, 매퍼위치와 type alias에 대한 정보(mybatis 설정정보 : mybatis-config.xml)
+		-> mybatis에서 커넥션 풀, 커넥션 생성
+	-->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="configLocation" value="/WEB-INF/mybatis/mybatis_config.xml"></property>
+	</bean>
+	
+	<!-- sqlSession : sql 실행하기 위해 필요한 커넥션 같은 아이...
+		destroy-method="clearCache" : mybatis의 장점중 하나인 캐시(최초 접속시 사용자 정보 저장해놓고 다음 접속시 바로 처리) 지우겠다는 명령어
+	 -->
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate" destroy-method="clearCache">
+		<constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory" />
+	</bean>
+	
+	
+	<!-- 객체 생성 -->
+	<!-- 객체하나를 bean 이라고 부름 
+	<bean id="hello" class="test.spring.bean.HelloController"></bean>
+	<bean id="test" class="test.spring.bean.TestController"></bean>-->
+	
+	<!-- bean 이 많아지면 복잡해지고 코드가 길어지므로 한큐에 처리가능한 코드로 변경 -->
+	<!-- 패키지명을 적으면 안에 있는 컨트롤러 어노테이션이 붙어잇는 클래스들을 객체 생성 해준다.(@Component, @Controller, @Repository, @Service) -->
+	<context:component-scan base-package="test.spring.bean"/>
+	<context:component-scan base-package="test.spring.mybatis"/>
+	<!-- test.spring 만 적으므로 확장 개념!! -->
+	<!-- <context:component-scan base-package="test.spring"/>  -->
+	
+	<bean id="day" class="java.util.Date"/>
+	
+	<!-- 기본생성자 호출 name,number setTest() 메소드 호출하여 값을 변수에 저장된 형태로 객체 생성 -->
+	<bean id="testBean" class="test.spring.bean.TestBean">
+		<property name="text" value="spring"/>
+		<property name="number" value="101"/>
+		<property name="reg" ref="day"/>
+	</bean>
+	
+	<!-- 기본 생성자 호출되며 객체 생성되는 형식
+	<bean id="testBean" class="test.spring.bean.TestBean"/>
+	 -->
+	 <!-- 매개변수에 있는 생성자 호출하며 객체생성 -->
+	 <bean id="testBean2" class="test.spring.bean.TestBean">
+	 	<constructor-arg index="0" value="hello"/>
+	 	<constructor-arg index="1" value="13"/>
+	 	<constructor-arg index="2" ref="day"/>
+	 </bean>	 
+</beans>
